@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVD룽지</title>
+    <style>
+        :root {
+            --card-color: #00ff00;
+        }
+
+        * {
+            box-sizing: border-box; /* 패딩과 테두리를 너비에 포함시켜 계산 오류 방지 */
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        #card {
+            position: absolute;
+            padding: 15px 30px;
+            background-color: transparent;
+            border: 5px solid var(--card-color);
+            border-radius: 15px;
+            color: var(--card-color);
+            font-size: 2.5rem;
+            font-weight: 900;
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            white-space: nowrap;
+            user-select: none;
+            box-shadow: 0 0 20px var(--card-color);
+            /* 초기 위치 */
+            left: 0;
+            top: 0;
+            will-change: transform; /* 애니메이션 최적화 */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="card">디룽지</div>
+
+    <script>
+        const card = document.getElementById('card');
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff'];
+
+        // 상태 변수
+        let rect = card.getBoundingClientRect();
+        let posX = Math.random() * (window.innerWidth - rect.width);
+        let posY = Math.random() * (window.innerHeight - rect.height);
+        let velX = 2.5; // 속도 조절
+        let velY = 2.5;
+
+        function changeColor() {
+            let newColor;
+            const currentColor = getComputedStyle(document.documentElement).getPropertyValue('--card-color').trim();
+            do {
+                newColor = colors[Math.floor(Math.random() * colors.length)];
+            } while (newColor === currentColor);
+            document.documentElement.style.setProperty('--card-color', newColor);
+        }
+
+        function animate() {
+            const screenW = window.innerWidth;
+            const screenH = window.innerHeight;
+            const cardW = card.offsetWidth;
+            const cardH = card.offsetHeight;
+
+            posX += velX;
+            posY += velY;
+
+            // 오른쪽/왼쪽 벽 충돌
+            if (posX + cardW >= screenW) {
+                velX = -Math.abs(velX);
+                posX = screenW - cardW; // 위치 보정
+                changeColor();
+            } else if (posX <= 0) {
+                velX = Math.abs(velX);
+                posX = 0; // 위치 보정
+                changeColor();
+            }
+
+            // 아래쪽/위쪽 벽 충돌
+            if (posY + cardH >= screenH) {
+                velY = -Math.abs(velY);
+                posY = screenH - cardH; // 위치 보정
+                changeColor();
+            } else if (posY <= 0) {
+                velY = Math.abs(velY);
+                posY = 0; // 위치 보정
+                changeColor();
+            }
+
+            card.style.transform = `translate3d(${posX}px, ${posY}px, 0)`;
+            requestAnimationFrame(animate);
+        }
+
+        // 창 크기가 바뀔 때 카드가 갇히지 않도록 초기화
+        window.addEventListener('resize', () => {
+            posX = Math.min(posX, window.innerWidth - card.offsetWidth);
+            posY = Math.min(posY, window.innerHeight - card.offsetHeight);
+        });
+
+        // 시작
+        animate();
+    </script>
+</body>
+</html>

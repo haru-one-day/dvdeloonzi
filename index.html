@@ -5,57 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DVD룽지</title>
     <style>
-        :root {
-            --card-color: #00ff00;
-        }
-
-        * {
-            box-sizing: border-box; /* 패딩과 테두리를 너비에 포함시켜 계산 오류 방지 */
-        }
-
+        :root { --card-color: #00ff00; }
+        * { box-sizing: border-box; }
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
         }
-
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); color: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; font-family: sans-serif; cursor: pointer;
+        }
         #card {
-            position: absolute;
-            padding: 15px 30px;
-            background-color: transparent;
-            border: 5px solid var(--card-color);
-            border-radius: 15px;
-            color: var(--card-color);
-            font-size: 2.5rem;
-            font-weight: 900;
+            position: absolute; padding: 15px 30px;
+            background-color: transparent; border: 5px solid var(--card-color);
+            border-radius: 15px; color: var(--card-color);
+            font-size: 2.5rem; font-weight: 900;
             font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-            white-space: nowrap;
-            user-select: none;
+            white-space: nowrap; user-select: none;
             box-shadow: 0 0 20px var(--card-color);
-            /* 초기 위치 */
-            left: 0;
-            top: 0;
-            will-change: transform; /* 애니메이션 최적화 */
+            left: 0; top: 0; will-change: transform; display: none;
         }
     </style>
 </head>
 <body>
 
+    <div id="overlay">
+        <h1 style="margin-bottom: 10px;">DVD룽지</h1>
+        <p>화면을 클릭하여 시작</p>
+    </div>
+
     <div id="card">디룽지</div>
 
     <script>
         const card = document.getElementById('card');
+        const overlay = document.getElementById('overlay');
         const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff'];
+        const soundUrl = 'https://mp3tourl.com/audio/1775385309143-c2483d8d-c464-45d7-b19e-fe409a3593cf.mp3';
 
-        // 상태 변수
-        let rect = card.getBoundingClientRect();
-        let posX = Math.random() * (window.innerWidth - rect.width);
-        let posY = Math.random() * (window.innerHeight - rect.height);
-        let velX = 2.5; // 속도 조절
-        let velY = 2.5;
+        let posX, posY;
+        let velX = 4; // 속도를 살짝 올렸습니다
+        let velY = 4;
+        let isRunning = false;
+
+        // 사운드 중첩 재생 함수 (끊김 방지 핵심)
+        function playBounceSound() {
+            const audioClone = new Audio(soundUrl);
+            audioClone.play().catch(e => {}); 
+            
+            // 재생 완료 후 메모리 해제
+            audioClone.onended = function() {
+                this.remove();
+            };
+        }
 
         function changeColor() {
             let newColor;
@@ -67,6 +70,8 @@
         }
 
         function animate() {
+            if (!isRunning) return;
+
             const screenW = window.innerWidth;
             const screenH = window.innerHeight;
             const cardW = card.offsetWidth;
@@ -75,40 +80,47 @@
             posX += velX;
             posY += velY;
 
-            // 오른쪽/왼쪽 벽 충돌
-            if (posX + cardW >= screenW) {
-                velX = -Math.abs(velX);
-                posX = screenW - cardW; // 위치 보정
-                changeColor();
-            } else if (posX <= 0) {
-                velX = Math.abs(velX);
-                posX = 0; // 위치 보정
-                changeColor();
+            let hit = false;
+
+            // 벽 충돌 로직
+            if (posX + cardW >= screenW || posX <= 0) {
+                velX *= -1;
+                posX = posX <= 0 ? 0 : screenW - cardW;
+                hit = true;
             }
 
-            // 아래쪽/위쪽 벽 충돌
-            if (posY + cardH >= screenH) {
-                velY = -Math.abs(velY);
-                posY = screenH - cardH; // 위치 보정
+            if (posY + cardH >= screenH || posY <= 0) {
+                velY *= -1;
+                posY = posY <= 0 ? 0 : screenH - cardH;
+                hit = true;
+            }
+
+            if (hit) {
                 changeColor();
-            } else if (posY <= 0) {
-                velY = Math.abs(velY);
-                posY = 0; // 위치 보정
-                changeColor();
+                playBounceSound(); // 중첩 가능한 재생 방식 호출
             }
 
             card.style.transform = `translate3d(${posX}px, ${posY}px, 0)`;
             requestAnimationFrame(animate);
         }
 
-        // 창 크기가 바뀔 때 카드가 갇히지 않도록 초기화
+        overlay.addEventListener('click', () => {
+            overlay.style.display = 'none';
+            card.style.display = 'block';
+            
+            const rect = card.getBoundingClientRect();
+            posX = Math.random() * (window.innerWidth - rect.width);
+            posY = Math.random() * (window.innerHeight - rect.height);
+            
+            isRunning = true;
+            animate();
+        });
+
         window.addEventListener('resize', () => {
+            if (!isRunning) return;
             posX = Math.min(posX, window.innerWidth - card.offsetWidth);
             posY = Math.min(posY, window.innerHeight - card.offsetHeight);
         });
-
-        // 시작
-        animate();
     </script>
 </body>
 </html>
